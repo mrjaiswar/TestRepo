@@ -1,3 +1,130 @@
-hii
-new textt addedd
-3rd line
+package context;
+
+import com.google.gson.Gson;
+import cucumber.api.Scenario;
+import io.restassured.RestAssured;
+import io.restassured.config.ObjectMapperConfig;
+import io.restassured.http.ContentType;
+import io.restassured.mapper.ObjectMapperType;
+import io.restassured.path.json.JsonPath;
+import io.restassured.path.json.config.JsonParserType;
+import io.restassured.path.json.config.JsonPathConfig;
+import io.restassured.response.Response;
+import io.restassured.specification.RequestSpecification;
+import model.services.Pnodes;
+import net.minidev.json.JSONObject;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import static constants.Common.CONTENT_TYPE;
+import static testrunner.CucumberJunitTest.testConfigReader;
+
+public class TestContext {
+
+    private String reqBody;
+    private Response response;
+    private RequestSpecification request;
+    Scenario scenario;
+
+    private static final String USER = testConfigReader.get().basicauth.user;
+    private static final String PASSWORD = testConfigReader.get().basicauth.password;
+    public String baseuri = testConfigReader.get().rtpApi.baseUri;
+
+
+    public void writeToReport() {
+        scenario.write("Response Body:\n" + response.then().extract().asString());
+    }
+
+    public void setReqBody(String reqBody) {
+        this.reqBody = reqBody;
+    }
+
+    public void defineReqBody(Object request){
+        setReqBody(new Gson().toJson(request));
+    }
+
+    public String getReqBody() { return reqBody; }
+
+    public Response getResponse() {
+        return response;
+    }
+
+    public TestContext() {
+        sharedData = new HashMap<>();
+    }
+
+    private Map<String, Object> sharedData;
+
+    public Map<String, Object> getSharedData() {
+        return sharedData;
+    }
+
+    public void addSharedData(String key, Object data) {
+        sharedData.put(key, data);
+    }
+
+    public <T> T getResultAsObject11(String path, Class<T> objectType) {
+        //    return response.jsonPath().getObject(path, objectType);
+        return response.jsonPath().getObject(path, objectType);
+    }
+
+    public <T> T getResultAsObject(Class<T> objectType) {
+        //Pnodes pnode = response.jsonPath().getObject(path, objectType);
+
+        return response.getBody().as(objectType);
+    }
+
+
+    /*public void postRequest(String reqBody, String url){
+        request = RestAssured.given();
+        response = request
+                .auth()
+                .preemptive()
+                .basic(USER, PASSWORD)
+                .header(CONTENT_TYPE, ContentType.JSON)
+                .relaxedHTTPSValidation()
+                .urlEncodingEnabled(false)
+                .log()
+                .uri()
+                .body(reqBody)
+                .when()
+                .post(url);
+    }*/
+
+    public void postRequest(String url){
+        System.out.println("baseurl------" +baseuri);
+        System.out.println("requestBody------" +reqBody);
+
+        request = RestAssured.given().config(RestAssured.config()
+                .objectMapperConfig(new ObjectMapperConfig(ObjectMapperType.GSON)));
+        response = request
+                .auth()
+                .preemptive()
+                .basic(USER, PASSWORD)
+                .header(CONTENT_TYPE, ContentType.JSON)
+                .relaxedHTTPSValidation()
+                .urlEncodingEnabled(false)
+                .log()
+                .uri()
+                .body(reqBody)
+                .when()
+                .post(baseuri+ url);
+    }
+
+    public void getRequest(String url){
+        request = RestAssured.given().config(RestAssured.config()
+                .objectMapperConfig(new ObjectMapperConfig(ObjectMapperType.GSON)));
+        response = request
+                .auth()
+                .preemptive()
+                .basic(USER, PASSWORD)
+                .header("Accept", ContentType.JSON.getAcceptHeader())
+                .contentType(ContentType.JSON)
+                .get(baseuri + url)
+                .then().extract().response();
+     //   System.out.println("response- " +response.prettyPrint());
+
+    }
+
+}
